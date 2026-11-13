@@ -1,6 +1,6 @@
 {
-    "name": "Fitness Pro",
-    "short_name": "Fitness Pro",
+    "name": "IAFit",
+    "short_name": "IAFit",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#080F1F",

@@ -198,7 +198,7 @@ class _MovementCameraScreenState extends State<MovementCameraScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'Não foi possível abrir as configurações. Acesse as permissões do Fitness Pro pelo Android.',
+                          'Não foi possível abrir as configurações. Acesse as permissões do IAFit pelo Android.',
                         ),
                       ),
                     );

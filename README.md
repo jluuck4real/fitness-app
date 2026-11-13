@@ -1,4 +1,4 @@
-# Fitness Pro — aplicativo mobile
+# IAFit — aplicativo mobile
 
 Aplicativo Flutter de treinos, exercícios e acompanhamento de progresso, com banco local SQLite, temas claro/escuro e identidade azul. Inclui vídeos demonstrativos e análise experimental de amplitude pela câmera no Android/iPhone.
 

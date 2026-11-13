@@ -11,11 +11,11 @@ class SettingsScreen extends StatelessWidget {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text(
-            'Sobre o Fitness Pro',
+            'Sobre o IAFit',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: const Text(
-            'Fitness Pro é um aplicativo desenvolvido por João Lucas, Raul Dias e Renato Silva, '
+            'IAFit é um aplicativo desenvolvido por João Lucas, Raul Dias e Renato Silva, '
             'como projeto acadêmico de TCC, com foco '
             'em organização de treinos, acompanhamento '
             'de progresso, exercícios e conteúdo educativo.',
@@ -77,7 +77,7 @@ class SettingsScreen extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: const Text(
-            'O Fitness Pro possui finalidade '
+            'O IAFit possui finalidade '
             'educacional e informativa. As informações '
             'apresentadas não substituem orientação '
             'de profissionais de educação física, '
@@ -235,7 +235,7 @@ class SettingsScreen extends StatelessWidget {
                 context: context,
                 icon: Icons.info_outline,
                 title: 'Sobre o aplicativo',
-                subtitle: 'Informações sobre o Fitness Pro',
+                subtitle: 'Informações sobre o IAFit',
                 onTap: () {
                   _showAbout(context);
                 },
@@ -299,7 +299,7 @@ class SettingsScreen extends StatelessWidget {
                   'Versão',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: const Text('Fitness Pro 1.0.0'),
+                subtitle: const Text('IAFit 1.0.3'),
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -375,7 +375,7 @@ class SettingsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Personalize seu Fitness Pro',
+                  'Personalize seu IAFit',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 17,
@@ -578,7 +578,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Fitness Pro',
+            'IAFit',
             style: TextStyle(
               color: colorScheme.onSurface,
               fontSize: 17,
@@ -598,7 +598,7 @@ class SettingsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(9),
             ),
             child: Text(
-              'Fitness Pro 1.0.0',
+              'IAFit 1.0.3',
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 10.5,

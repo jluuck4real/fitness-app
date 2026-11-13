@@ -28,7 +28,7 @@ class FitnessApp extends StatelessWidget {
       builder: (context, isDarkMode, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'Fitness Pro',
+          title: 'IAFit',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
@@ -93,7 +93,7 @@ class _StartupScreenState extends State<StartupScreen> {
             const SizedBox(height: 25),
 
             const Text(
-              'Fitness Pro',
+              'IAFit',
               style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
             ),
 

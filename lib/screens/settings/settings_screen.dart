@@ -299,7 +299,7 @@ class SettingsScreen extends StatelessWidget {
                   'Versão',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                subtitle: const Text('IAFit 1.0.4'),
+                subtitle: const Text('IAFit 1.0.5'),
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -598,7 +598,7 @@ class SettingsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(9),
             ),
             child: Text(
-              'IAFit 1.0.4',
+              'IAFit 1.0.5',
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 10.5,

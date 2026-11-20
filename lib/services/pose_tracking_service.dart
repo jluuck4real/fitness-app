@@ -33,7 +33,8 @@ class PoseTrackingService extends ChangeNotifier {
   String? errorDetails;
   double? angle;
   final Stopwatch clock = Stopwatch();
-  bool get supportsCounting => analyzer.kind != MovementKind.mirror;
+  bool get supportsCounting => analyzer.supportsCounting;
+  bool get supportsEvaluation => analyzer.supportsEvaluation;
   PoseLandmarkType? get trackedJoint => _joint;
   void _changed() {
     if (!_closed) notifyListeners();
@@ -140,14 +141,14 @@ class PoseTrackingService extends ChangeNotifier {
   }
 
   void _measure() {
-    if (!supportsCounting) {
+    if (!supportsEvaluation) {
       feedback = 'Pontos corporais detectados. A contagem deste exercício ainda não está disponível.';
       return;
     }
     // YOLO COCO 17-point triples from main.py mapped to ML Kit's 33 names.
     // Lateral intentionally fixes the original elbow-angle bug: use the shoulder.
     final sides = switch (analyzer.kind) {
-      MovementKind.squat => [
+      MovementKind.squat || MovementKind.lunge => [
         [
           PoseLandmarkType.leftHip,
           PoseLandmarkType.leftKnee,
@@ -159,7 +160,11 @@ class PoseTrackingService extends ChangeNotifier {
           PoseLandmarkType.rightAnkle,
         ],
       ],
-      MovementKind.curl => [
+      MovementKind.curl ||
+      MovementKind.triceps ||
+      MovementKind.press ||
+      MovementKind.pull ||
+      MovementKind.pushUp => [
         [
           PoseLandmarkType.leftShoulder,
           PoseLandmarkType.leftElbow,
@@ -181,6 +186,18 @@ class PoseTrackingService extends ChangeNotifier {
           PoseLandmarkType.rightShoulder,
           PoseLandmarkType.rightHip,
           PoseLandmarkType.rightKnee,
+        ],
+      ],
+      MovementKind.plank => [
+        [
+          PoseLandmarkType.leftShoulder,
+          PoseLandmarkType.leftHip,
+          PoseLandmarkType.leftAnkle,
+        ],
+        [
+          PoseLandmarkType.rightShoulder,
+          PoseLandmarkType.rightHip,
+          PoseLandmarkType.rightAnkle,
         ],
       ],
       _ => [
@@ -221,19 +238,51 @@ class PoseTrackingService extends ChangeNotifier {
       analyzer.loseTracking();
       _joint = side[1];
     }
-    final points = side.map((type) => landmarks[type]!).toList();
-    final measured = MovementAnalyzer.angle(
-      math.Point(points[0].x, points[0].y),
-      math.Point(points[1].x, points[1].y),
-      math.Point(points[2].x, points[2].y),
-    );
+    double measure(List<PoseLandmarkType> triple) {
+      final points = triple.map((type) => landmarks[type]!).toList();
+      return MovementAnalyzer.angle(
+        math.Point(points[0].x, points[0].y),
+        math.Point(points[1].x, points[1].y),
+        math.Point(points[2].x, points[2].y),
+      );
+    }
+
+    final measured = measure(side);
     if (!measured.isFinite) {
       angle = null;
       analyzer.loseTracking();
       return;
     }
+    final opposite = valid.length > 1
+        ? measure(valid.firstWhere((candidate) => candidate != side))
+        : null;
+    final isLeft = side[1].name.startsWith('left');
+    final shoulder = isLeft
+        ? PoseLandmarkType.leftShoulder
+        : PoseLandmarkType.rightShoulder;
+    final hip = isLeft ? PoseLandmarkType.leftHip : PoseLandmarkType.rightHip;
+    final lower = switch (analyzer.kind) {
+      MovementKind.pushUp || MovementKind.plank =>
+        isLeft ? PoseLandmarkType.leftAnkle : PoseLandmarkType.rightAnkle,
+      _ => isLeft ? PoseLandmarkType.leftKnee : PoseLandmarkType.rightKnee,
+    };
+    final alignmentAvailable = [shoulder, hip, lower].every((type) {
+      final point = landmarks[type];
+      return point != null && point.likelihood >= .75;
+    });
+    final alignment = alignmentAvailable
+        ? MovementAnalyzer.angle(
+            math.Point(landmarks[shoulder]!.x, landmarks[shoulder]!.y),
+            math.Point(landmarks[hip]!.x, landmarks[hip]!.y),
+            math.Point(landmarks[lower]!.x, landmarks[lower]!.y),
+          )
+        : null;
     angle = measured;
-    feedback = analyzer.update(measured);
+    feedback = analyzer.update(
+      measured,
+      oppositeAngle: opposite?.isFinite == true ? opposite : null,
+      alignmentAngle: alignment,
+    );
   }
 
   Future<void> stop() async {

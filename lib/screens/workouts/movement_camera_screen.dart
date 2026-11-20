@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../services/camera_session_service.dart';
+import '../../services/movement_analyzer.dart';
 import '../../services/pose_tracking_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/pose_skeleton_painter.dart';
@@ -336,28 +337,7 @@ class _MovementCameraScreenState extends State<MovementCameraScreen>
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(color: AppColors.border),
                 ),
-                child: _finished
-                    ? const Padding(
-                        padding: EdgeInsets.all(30),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.task_alt_rounded,
-                              size: 48,
-                              color: AppColors.cyan,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'Resumo da análise',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : _preview(),
+                child: _finished ? _finishedReport() : _preview(),
               ),
               const SizedBox(height: 16),
               Container(
@@ -381,6 +361,16 @@ class _MovementCameraScreenState extends State<MovementCameraScreen>
                           _metric(
                             'REPETIÇÕES ESTIMADAS',
                             '${_tracking.analyzer.repetitions}',
+                          ),
+                        if (_finished && _tracking.supportsCounting)
+                          _metric(
+                            'EXECUÇÕES SEM ALERTA',
+                            '${_tracking.analyzer.correctRepetitions}',
+                          ),
+                        if (_finished && _tracking.supportsCounting)
+                          _metric(
+                            'COM ALERTAS',
+                            '${_tracking.analyzer.report().repetitionsWithIdentifiedIssues}',
                           ),
                         _metric(
                           '${_tracking.analyzer.rule.joint.toUpperCase()} · 2D',
@@ -415,8 +405,8 @@ class _MovementCameraScreenState extends State<MovementCameraScreen>
                     ],
                     Text(
                       _finished
-                          ? (_tracking.supportsCounting
-                                ? 'Contagem por limiares do projeto IAFit. Uma repetição é registrada ao atingir a fase alvo.'
+                          ? (_tracking.supportsEvaluation
+                                ? 'Relatório formado somente por leituras de pose com articulações visíveis. As métricas são estimativas 2D, não diagnóstico médico.'
                                 : 'Este exercício não possui regras de contagem ou avaliação disponíveis.')
                           : error ?? _tracking.feedback,
                       style: TextStyle(
@@ -478,7 +468,7 @@ class _MovementCameraScreenState extends State<MovementCameraScreen>
                 OutlinedButton.icon(
                   onPressed: _busy ? null : _finish,
                   icon: const Icon(Icons.stop_rounded),
-                  label: const Text('Finalizar sessão'),
+                  label: const Text('Finalizar avaliação de execução'),
                 ),
               if (_camera.canSwitch && !_finished)
                 OutlinedButton.icon(
@@ -519,6 +509,189 @@ class _MovementCameraScreenState extends State<MovementCameraScreen>
           fontSize: 28,
           fontWeight: FontWeight.w800,
           color: AppColors.sky,
+        ),
+      ),
+    ],
+  );
+
+  Widget _finishedReport() {
+    final report = _tracking.analyzer.report();
+    final issues = report.issueCounts;
+    if (!_tracking.supportsEvaluation) {
+      return const Padding(
+        padding: EdgeInsets.all(30),
+        child: Column(
+          children: [
+            Icon(Icons.info_outline_rounded, size: 44, color: AppColors.sky),
+            SizedBox(height: 12),
+            Text(
+              'Ainda não há critérios confiáveis para este exercício.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+    if (!report.hasEvidence) {
+      return const Padding(
+        padding: EdgeInsets.all(30),
+        child: Column(
+          children: [
+            Icon(Icons.visibility_off_outlined, size: 44, color: AppColors.sky),
+            SizedBox(height: 12),
+            Text(
+              'Nenhuma pose com qualidade suficiente foi medida nesta sessão.',
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Não foi gerada uma avaliação para evitar conclusões sem dados.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.muted),
+            ),
+          ],
+        ),
+      );
+    }
+    if (report.isIsometric) {
+      final alignment = report.hasAlignmentData;
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.self_improvement_rounded,
+              size: 46,
+              color: AppColors.cyan,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Relatório de sustentação',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              alignment
+                  ? 'O alinhamento corporal foi acompanhado em ${report.samples} leituras de pose.'
+                  : 'Não houve leituras suficientes de alinhamento para avaliar a prancha.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.muted),
+            ),
+            if (issues[ExecutionIssue.alignment] != null) ...[
+              const SizedBox(height: 14),
+              const Text(
+                'Em parte das leituras, a linha ombro–quadril–tornozelo ficou fora da faixa 2D observável. Reenquadre-se de lado e ajuste antes de aumentar o tempo.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+    final total = report.totalRepetitions;
+    final hasReps = total > 0;
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Center(
+            child: Icon(
+              Icons.task_alt_rounded,
+              size: 46,
+              color: AppColors.cyan,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Center(
+            child: Text(
+              'Relatório da execução',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+          ),
+          const SizedBox(height: 20),
+          if (!hasReps)
+            const Text(
+              'Foram detectadas poses, mas nenhuma repetição alcançou todos os limiares. Não há como classificar execuções completas nesta sessão.',
+            )
+          else ...[
+            Text(
+              '$total repetições completas · ${report.correctRepetitions} sem alerta mensurável',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: report.accuracyPercent / 100,
+                minHeight: 10,
+                backgroundColor: AppColors.deep,
+                color: report.accuracyPercent >= 75
+                    ? AppColors.cyan
+                    : AppColors.sky,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${report.accuracyPercent}% das repetições completas não apresentaram alertas nas medições disponíveis.',
+              style: const TextStyle(color: AppColors.muted),
+            ),
+          ],
+          if (report.incompleteMovements > 0) ...[
+            const SizedBox(height: 16),
+            _reportLine(
+              Icons.unpublished_outlined,
+              '${report.incompleteMovements} movimento(s) retornaram sem alcançar a amplitude-alvo.',
+              'Tente completar o percurso de forma controlada, dentro de uma amplitude confortável.',
+            ),
+          ],
+          if (issues[ExecutionIssue.asymmetry] != null) ...[
+            const SizedBox(height: 14),
+            _reportLine(
+              Icons.compare_arrows_rounded,
+              '${issues[ExecutionIssue.asymmetry]} repetição(ões) tiveram diferença bilateral acima de 25°.',
+              'Priorize um ritmo semelhante entre os lados e reposicione a câmera se um lado ficou oculto.',
+            ),
+          ],
+          if (issues[ExecutionIssue.alignment] != null) ...[
+            const SizedBox(height: 14),
+            _reportLine(
+              Icons.straighten_rounded,
+              '${issues[ExecutionIssue.alignment]} repetição(ões) tiveram alinhamento 2D fora da faixa observável.',
+              'Mantenha o corpo de lado, com ombro, quadril e perna visíveis; use a leitura como orientação, não diagnóstico.',
+            ),
+          ],
+          if (hasReps && issues.isEmpty && report.incompleteMovements == 0) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Ponto positivo: todas as repetições completas ficaram dentro dos critérios mensuráveis desta sessão.',
+              style: TextStyle(
+                color: AppColors.cyan,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _reportLine(IconData icon, String title, String advice) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, color: AppColors.sky),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text(
+              advice,
+              style: const TextStyle(color: AppColors.muted, fontSize: 13),
+            ),
+          ],
         ),
       ),
     ],

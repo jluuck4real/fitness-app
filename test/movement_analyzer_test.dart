@@ -60,4 +60,60 @@ void main() {
       isTrue,
     );
   });
+
+  test('records a completed repetition with bilateral evidence', () {
+    final analyzer = MovementAnalyzer('Agachamento livre');
+    frames(analyzer, 175, 3);
+    frames(analyzer, 85, 3);
+    final report = analyzer.report();
+
+    expect(report.totalRepetitions, 1);
+    expect(report.correctRepetitions, 1);
+    expect(report.hasBilateralData, isFalse);
+  });
+
+  test('flags only measured bilateral asymmetry in a completed repetition', () {
+    final analyzer = MovementAnalyzer('Rosca direta');
+    for (var i = 0; i < 3; i++) {
+      analyzer.update(175, oppositeAngle: 175);
+    }
+    for (var i = 0; i < 3; i++) {
+      analyzer.update(45, oppositeAngle: 90);
+    }
+    final report = analyzer.report();
+
+    expect(report.totalRepetitions, 1);
+    expect(report.correctRepetitions, 0);
+    expect(report.issueCounts[ExecutionIssue.asymmetry], 1);
+  });
+
+  test('supports isometric plank alignment without inventing repetitions', () {
+    final analyzer = MovementAnalyzer('Prancha');
+    for (var i = 0; i < 4; i++) {
+      analyzer.update(120, alignmentAngle: 120);
+    }
+    final report = analyzer.report();
+
+    expect(analyzer.supportsCounting, isFalse);
+    expect(report.isIsometric, isTrue);
+    expect(report.totalRepetitions, 0);
+    expect(report.hasAlignmentData, isTrue);
+  });
+
+  test('catalog and planned primary exercises resolve to explicit rules', () {
+    for (final name in [
+      'Supino reto',
+      'Agachamento livre',
+      'Rosca direta',
+      'Puxada frontal',
+      'Desenvolvimento',
+      'Tríceps pulley',
+      'Elevação lateral',
+      'Flexão de braço',
+      'Afundo',
+    ]) {
+      expect(MovementAnalyzer(name).supportsCounting, isTrue, reason: name);
+    }
+    expect(MovementAnalyzer('Prancha').supportsEvaluation, isTrue);
+  });
 }
